@@ -38,6 +38,15 @@ zashboard-controller \
 The service name is validated and passed only to systemd or OpenRC with one of
 `start`, `stop`, or `restart`. Bind to loopback unless LAN access is required.
 When listening on a LAN address, use a separate strong controller token.
+For OpenRC, write the token as
+`export ZASHBOARD_CONTROLLER_TOKEN=...` in
+`/etc/conf.d/zashboard-controller`; plain sourced assignments are not exported
+to the controller process. The packaged environment example already uses the
+portable exported form.
+
+Lifecycle actions are not acknowledged merely because the supervisor command
+returned. The dashboard polls the independent controller until the core is
+actually reachable after start/restart, or actually stopped after stop.
 
 ## Provider lifecycle
 

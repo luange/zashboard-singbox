@@ -97,6 +97,12 @@ export const fetchProxies = async () => {
   const smartGroups: string[] = []
 
   Object.entries(proxyMap.value).forEach(([name, proxy]) => {
+    // The core intentionally exposes Smart groups as standard Selectors so
+    // unmodified Clash dashboards remain compatible. Normalize only inside
+    // this Smart-aware client when extension metadata is present.
+    if (proxy.smart_mode && proxy.type.toLowerCase() === PROXY_TYPE.Selector) {
+      proxy.type = 'Smart'
+    }
     const iconReflect = iconReflectList.value.find((icon) => icon.name === name)
 
     if (iconReflect) {
