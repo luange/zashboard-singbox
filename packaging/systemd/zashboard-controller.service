@@ -1,0 +1,19 @@
+[Unit]
+Description=Independent Zashboard UI and sing-box lifecycle controller
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/zashboard-controller.env
+ExecStart=/usr/local/bin/zashboard-controller -listen ${LISTEN} -core ${CORE_URL} -service ${CORE_SERVICE} -supervisor systemd -ui ${UI_DIR}
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/usr/share/zashboard-singbox
+
+[Install]
+WantedBy=multi-user.target

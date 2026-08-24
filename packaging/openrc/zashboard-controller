@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+
+name="zashboard-controller"
+description="Independent Zashboard UI and sing-box lifecycle controller"
+command="/usr/local/bin/zashboard-controller"
+command_args="-listen ${LISTEN:-127.0.0.1:9091} -core ${CORE_URL:-http://127.0.0.1:9090} -service ${CORE_SERVICE:-sing-box} -supervisor openrc -ui ${UI_DIR:-/usr/share/zashboard-singbox}"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/${RC_SVCNAME}.log"
+error_log="/var/log/${RC_SVCNAME}.err"
+
+depend() {
+  need net
+  after sing-box
+}
