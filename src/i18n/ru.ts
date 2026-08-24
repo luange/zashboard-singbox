@@ -439,7 +439,7 @@ const ru: LANG_MESSAGE = {
   tableWidthMode: 'Режим ширины таблицы',
   testFailed: 'Тест задержки таймаут',
   testFinishedTip: '{name}\n{number}/{total} Тест завершен',
-  testFinishedResultTip: '{name}\nТест завершен: {success} Успешно, {failed} Таймаут',
+  testFinishedResultTip: '{name}\nТест завершен: {success} доступно, {failed} ошибка или таймаут',
   testFailedTip: '{name}\nТест задержки таймаут',
   updateFinishedTip: '{number} Обновление завершено',
 

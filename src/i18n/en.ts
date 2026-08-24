@@ -437,7 +437,8 @@ const en = {
   tableWidthMode: 'Table width mode',
   testFailed: 'Test failed',
   testFinishedTip: '{name}\n{number}/{total} tests completed',
-  testFinishedResultTip: '{name}\nTest completed: {success} succeeded, {failed} timed out',
+  testFinishedResultTip:
+    '{name}\nTest completed: {success} available, {failed} failed or timed out',
   testFailedTip: '{name}\nTest failed',
   updateFinishedTip: '{number} update(s) finished',
 

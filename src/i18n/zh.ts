@@ -430,7 +430,7 @@ const zh: LANG_MESSAGE = {
   tableWidthMode: '表格宽度模式',
   testFailed: '测速超时',
   testFinishedTip: '{name}\n{number}/{total} 测试完成',
-  testFinishedResultTip: '{name}\n测试完成: {success} 成功，{failed} 超时',
+  testFinishedResultTip: '{name}\n测试完成：{success} 个可用，{failed} 个失败或超时',
   testFailedTip: '{name}\n测速超时',
   updateFinishedTip: '{number} 更新完成',
 
