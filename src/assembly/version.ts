@@ -218,7 +218,11 @@ export const fetchIsUIUpdateAvailable = async () => {
     zashboardVersion.value,
   )
 
-  return Boolean(tag_name && tag_name !== `v${zashboardVersion.value}`)
+  return Boolean(
+    tag_name &&
+    tag_name !== `sb-v${zashboardVersion.value}` &&
+    tag_name !== `v${zashboardVersion.value}`,
+  )
 }
 
 const check = async (url: string, versionNumber: string) => {
