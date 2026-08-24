@@ -8,6 +8,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: write
 
 jobs:
   release-please:
@@ -21,7 +22,7 @@ jobs:
         id: release
         uses: googleapis/release-please-action@v5
         with:
-          token: ${{ secrets.PAT }}
+          token: ${{ github.token }}
           release-type: node
           target-branch: main
 
@@ -56,7 +57,7 @@ jobs:
       - name: Deploy 🚀
         uses: peaceiris/actions-gh-pages@v4
         with:
-          github_token: ${{ secrets.PAT }}
+          github_token: ${{ github.token }}
           publish_dir: ./dist
           publish_branch: gh-pages${{ matrix.font.suffix }}
           force_orphan: true
@@ -114,7 +115,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.PAT }}
+          password: ${{ github.token }}
 
       - name: build and publish ghcr.io docker image
         uses: docker/build-push-action@v7
@@ -125,7 +126,7 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           push: true
           tags: |
-            ghcr.io/zephyruso/zashboard:latest
-            ghcr.io/zephyruso/zashboard:${{ needs.release-please.outputs.tag_name }}
+            ghcr.io/luange/zashboard-singbox:latest
+            ghcr.io/luange/zashboard-singbox:${{ needs.release-please.outputs.tag_name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
