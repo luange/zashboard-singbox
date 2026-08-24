@@ -100,8 +100,20 @@ export const fetchProxies = async () => {
     // The core intentionally exposes Smart groups as standard Selectors so
     // unmodified Clash dashboards remain compatible. Normalize only inside
     // this Smart-aware client when extension metadata is present.
-    if (proxy.smart_mode && proxy.type.toLowerCase() === PROXY_TYPE.Selector) {
+    if ((proxy.smart_mode || proxy.smart) && proxy.type.toLowerCase() === PROXY_TYPE.Selector) {
       proxy.type = 'Smart'
+      if (!proxy.smart_mode && proxy.smart) {
+        proxy.smart_mode = proxy.smart.temporary_override
+          ? 'temporary'
+          : proxy.smart.pinned
+            ? 'pinned'
+            : proxy.smart.selected
+              ? 'auto'
+              : 'warming'
+      }
+      if (proxy.smart_mode === 'auto' && proxy.smart?.selected) {
+        proxy.now = proxy.smart.selected
+      }
     }
     const iconReflect = iconReflectList.value.find((icon) => icon.name === name)
 
