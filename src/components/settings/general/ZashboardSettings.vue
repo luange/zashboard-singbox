@@ -10,11 +10,11 @@
           <span class="bg-secondary h-2 w-2 rounded-full"></span>
         </span>
         <a
-          href="https://github.com/Zephyruso/zashboard"
+          href="https://github.com/luange/zashboard-singbox"
           target="_blank"
           class="text-lg font-semibold"
         >
-          zashboard
+          Zashboard sing-box
           <span class="text-sm font-normal opacity-50">
             {{ zashboardVersion }}
             <span

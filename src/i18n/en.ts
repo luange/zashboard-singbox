@@ -331,7 +331,7 @@ const en = {
   customTheme: 'Custom theme',
   unavailableProxy: 'Hide unavailable proxies',
   protocolTips:
-    'You are trying to connect to an HTTP backend, but zashboard is provided via HTTPS. This may cause connection errors. Please allow insecure content in your browser settings or use the HTTP version of zashboard, such as http://board.zash.run.place.',
+    'You are trying to connect to an HTTP backend from an HTTPS dashboard. Allow mixed content or self-host this dashboard over HTTP on the same trusted network.',
   global: 'Global',
   direct: 'Direct',
   lowLatencyDesc: 'Yellow threshold',

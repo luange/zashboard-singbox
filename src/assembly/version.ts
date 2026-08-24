@@ -48,7 +48,7 @@ const detectCore = (versionString: string): Core => {
 export const coreBrand = computed(() => {
   switch (core.value) {
     case Core.Singbox:
-      return { logo: SingBoxLogo, url: 'https://github.com/sagernet/sing-box' }
+      return { logo: SingBoxLogo, url: 'https://github.com/luange/sing-box-smart-adaptive' }
     case Core.Honk:
       return { logo: HonkLogo, url: 'https://github.com/Glassyiris/honk' }
     default:
@@ -214,7 +214,7 @@ async function fetchWithLocalCache<T>(url: string, version: string): Promise<T> 
 
 export const fetchIsUIUpdateAvailable = async () => {
   const { tag_name } = await fetchWithLocalCache<{ tag_name: string }>(
-    'https://api.github.com/repos/Zephyruso/zashboard/releases/latest',
+    'https://api.github.com/repos/luange/zashboard-singbox/releases/latest',
     zashboardVersion.value,
   )
 

@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        感谢您报告bug！在提交之前，请搜索[现有issues](https://github.com/Zephyruso/zashboard/issues)看看您的问题是否已经被报告过。
+        感谢您报告bug！在提交之前，请搜索[现有issues](https://github.com/luange/zashboard-singbox/issues)看看您的问题是否已经被报告过。
 
         **如有可能，请尽量附上 bug 的录屏或截图**，这是我们理解并修复问题最快的方式。
 

@@ -5,7 +5,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Thanks for reporting a bug! Before submitting, please search [existing issues](https://github.com/Zephyruso/zashboard/issues) to see if your problem has already been reported.
+        Thanks for reporting a bug! Before submitting, please search [existing issues](https://github.com/luange/zashboard-singbox/issues) to see if your problem has already been reported.
 
         **If at all possible, please include a screen recording or screenshot of the bug** — it is by far the fastest way for us to understand and fix the problem.
 

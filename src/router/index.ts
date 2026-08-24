@@ -82,14 +82,14 @@ const router = createRouter({
   ],
 })
 
-const title = useTitle('zashboard')
+const title = useTitle('Zashboard sing-box')
 const setTitleByName = (name: string | symbol | undefined) => {
   if (typeof name === 'string' && activeBackend.value) {
     const backend = activeBackend.value
     const prefix = backend.label || `${backend.host}:${backend.port}`
     title.value = `${prefix} | ${i18n.global.t(name)}`
   } else {
-    title.value = 'zashboard'
+    title.value = 'Zashboard sing-box'
   }
 }
 

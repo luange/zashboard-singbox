@@ -329,7 +329,7 @@ const zhTW: LANG_MESSAGE = {
   customTheme: '自訂主題',
   unavailableProxy: '隱藏不可用節點',
   protocolTips:
-    '您正在嘗試連接一個http後端但zashboard是通過https提供的，這可能會導致連接錯誤，請在瀏覽器設定中允許不安全的內容，或者使用http版本面板例如http://board.zash.run.place',
+    '您正在從 HTTPS 面板連線 HTTP 後端，這可能被瀏覽器攔截。請允許混合內容，或在同一可信網路中自行部署 HTTP 版面板。',
   global: '全域',
   direct: '直連',
   lowLatencyDesc: '黃色的閾值',

@@ -49,8 +49,8 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
-        name: 'zashboard',
-        short_name: 'zashboard',
+        name: 'Zashboard sing-box',
+        short_name: 'Zashboard SB',
         description: 'a dashboard using clash api',
         theme_color: '#000000',
         icons: [
