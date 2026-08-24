@@ -11,6 +11,7 @@ export type Backend = {
   port: string
   secondaryPath: string // 仅 clash
   password: string // 通用:Clash secret / sing-box gRPC Bearer token
+  controllerToken?: string // optional zashboard-controller bearer token
   uuid: string
   label?: string
   disableUpgradeCore?: boolean // 仅 clash
@@ -62,6 +63,20 @@ export type Proxy = {
   testUrl?: string
   'dialer-proxy'?: string
   'provider-name'?: string
+  smart?: SmartGroupStatus
+  smart_mode?: 'auto' | 'pinned' | 'temporary' | 'warming'
+}
+
+export type SmartGroupStatus = {
+  selected?: string
+  pinned?: string
+  temporary_override?: string
+  reason?: string
+  candidate_count: number
+  state_counts: Record<string, number>
+  switches_total?: number
+  performance_switches?: number
+  failure_failovers?: number
 }
 
 export type SubscriptionInfo = {
@@ -78,6 +93,9 @@ export type ProxyProvider = {
   testUrl: string
   updatedAt: string
   vehicleType: string
+  paused?: boolean
+  consumers?: number
+  supportsPause?: boolean
 }
 
 export type Rule = {

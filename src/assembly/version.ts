@@ -14,6 +14,7 @@ import { activeBackend } from '@/store/setup'
 import type { Backend } from '@/types'
 import { computed, nextTick, ref } from 'vue'
 import { apiVersion, can, Channel, channel, core, Core, resetCore } from './backend'
+import { probeController } from './controller'
 
 export const version = ref()
 export const isCoreUpdateAvailable = ref(false)
@@ -122,6 +123,7 @@ const probeBackend = async (backend: Backend) => {
 
   version.value = data?.version || ''
   core.value = detectCore(version.value)
+  await probeController()
   backendProbe.value = {
     uuid: backend.uuid,
     status: 'connected',

@@ -1,5 +1,9 @@
 # zashboard
 
+> This branch is the maintained **sing-box edition**. It preserves sing-box
+> support, adds capability-driven Smart and Provider management, and ships an
+> optional service controller. See [the sing-box edition guide](docs/SINGBOX_EDITION.md).
+
 <p align="center">
   <img src="./readme/pc.png" height="300">
   <img src="./readme/mobile.png" height="300">

@@ -1,0 +1,36 @@
+name: Upstream compatibility
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '23 3 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  merge-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Merge upstream in disposable checkout
+        run: |
+          git remote add upstream https://github.com/Zephyruso/zashboard.git
+          git fetch upstream main
+          git -c user.name=compat-bot -c user.email=compat@example.invalid \
+            merge --no-commit --no-ff upstream/main
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm type-check
+      - run: pnpm build
+      - name: Test controller
+        working-directory: controller
+        run: go test ./...

@@ -1,0 +1,46 @@
+name: Release sing-box edition
+
+on:
+  push:
+    tags:
+      - 'sb-v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.20.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm type-check && pnpm build
+      - name: Build controller
+        working-directory: controller
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: go build -trimpath -ldflags='-s -w' -o ../zashboard-controller-linux-${{ matrix.goarch }} .
+      - name: Package UI
+        run: zip -qr zashboard-singbox-dist-${{ matrix.goarch }}.zip dist
+      - run: sha256sum zashboard-controller-linux-${{ matrix.goarch }} zashboard-singbox-dist-${{ matrix.goarch }}.zip > SHA256SUMS-${{ matrix.goarch }}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            zashboard-controller-linux-${{ matrix.goarch }}
+            zashboard-singbox-dist-${{ matrix.goarch }}.zip
+            SHA256SUMS-${{ matrix.goarch }}

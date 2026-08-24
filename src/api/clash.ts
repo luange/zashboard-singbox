@@ -91,6 +91,14 @@ export const updateProxyProviderAPI = (name: string) => {
   return axios.put(`/providers/proxies/${encodeURIComponent(name)}`)
 }
 
+export const setProxyProviderPausedAPI = (name: string, paused: boolean) => {
+  return axios.patch(`/providers/proxies/${encodeURIComponent(name)}`, { paused })
+}
+
+export const deleteProxyProviderAPI = (name: string) => {
+  return axios.delete(`/providers/proxies/${encodeURIComponent(name)}`)
+}
+
 export const proxyProviderHealthCheckAPI = (name: string) => {
   return axios.get<Record<string, number>>(
     `/providers/proxies/${encodeURIComponent(name)}/healthcheck`,

@@ -29,6 +29,7 @@ import { displayAllFeatures } from '@/store/settings'
 import { activeBackend } from '@/store/setup'
 import type { Backend } from '@/types'
 import { computed, ref } from 'vue'
+import { controllerAvailable } from './controller'
 
 // usbip 需要 sing-box gRPC API v2(ProvideUSBDevices 流)
 const USBIP_MIN_API_VERSION = 2
@@ -92,7 +93,9 @@ const hard = computed(() => {
     dnsQuery: clash,
     dnsFlush: clash,
     fakeIPFlush: clash,
-    coreActions: clash,
+    coreActions: clash || controllerAvailable.value,
+    coreStart: controllerAvailable.value,
+    coreStop: controllerAvailable.value,
     dashboardUpgrade: clash,
 
     tools: singbox,
@@ -113,7 +116,7 @@ const soft = computed(() => {
   return {
     // ---------- mihomo 内核侧 ----------
     coreUpgrade: mihomoOrForkCore,
-    coreRestart: mihomoOrForkCore,
+    coreRestart: mihomoOrForkCore || controllerAvailable.value,
     reloadConfigs: mihomoOrForkCore,
     updateConfigs: mihomoOrForkCore,
     updateGeoDatabase: mihomoOrForkCore,

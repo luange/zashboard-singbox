@@ -90,6 +90,15 @@
         v-model="model.password"
       />
     </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-sm">{{ $t('controllerToken') }} ({{ $t('optional') }})</label>
+      <input
+        type="password"
+        class="input input-sm w-full"
+        autocomplete="off"
+        v-model="model.controllerToken"
+      />
+    </div>
   </div>
 </template>
 

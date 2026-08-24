@@ -265,6 +265,13 @@ const en = {
   defaultTheme: 'Default theme',
   darkTheme: 'Dark theme',
   proxyProvider: 'Proxy provider',
+  pauseProvider: 'Pause automatic provider maintenance',
+  restoreProvider: 'Restore automatic provider maintenance',
+  deleteProvider: 'Disable provider',
+  deleteProviderConfirm:
+    'Disable provider {name}? Existing nodes stay available and it can be restored here.',
+  providerPausedHint:
+    'Automatic updates and scheduled health checks are paused; existing nodes remain usable.',
   ruleProvider: 'Rule provider',
   expire: 'Expires',
   noExpire: 'No expiry',
@@ -333,6 +340,12 @@ const en = {
   emoji: 'Emoji',
   unauthorizedTip: 'Unauthorized, please log in again.',
   restartCore: 'Restart core',
+  startCore: 'Start core',
+  stopCore: 'Stop core',
+  startCoreSuccess: 'Core start requested successfully',
+  stopCoreSuccess: 'Core stopped successfully',
+  stopCoreConfirm: 'The proxy service will become unavailable until it is started again.',
+  controllerToken: 'Controller token',
   restartCoreConfirm:
     'Restart the core now? The proxy service will be briefly interrupted and existing connections will be dropped.',
   checkCoreUpgrade: 'Check for core upgrades',

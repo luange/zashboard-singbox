@@ -13,7 +13,6 @@ import { useAppearanceVars } from './composables/useAppearanceVars'
 import { showUpdateConfigModal, showUpgradeCoreModal } from './composables/backendActions'
 import ConfirmDialogHost from './components/common/ConfirmDialogHost.vue'
 import { useKeyboard } from './composables/keyboard'
-import { useSingboxDeprecationNotice } from './composables/singboxDeprecationNotice'
 import { EMOJIS, FONTS } from './constant'
 import {
   autoImportSettings,
@@ -194,7 +193,6 @@ onMounted(async () => {
 
 useAppearanceVars()
 useKeyboard()
-useSingboxDeprecationNotice()
 </script>
 
 <template>

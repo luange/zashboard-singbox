@@ -16,6 +16,12 @@ import {
   reloadConfigsAPI,
   updateGeoDataAPI,
 } from '@/assembly/config'
+import {
+  controllerAvailable,
+  restartCoreWithController,
+  startCoreWithController,
+  stopCoreWithController,
+} from '@/assembly/controller'
 import { fetchProxies, flushSmartGroupWeightsAPI, hasSmartGroup } from '@/assembly/proxies'
 import { fetchRules } from '@/assembly/rules'
 import { restartCoreAPI } from '@/assembly/version'
@@ -31,7 +37,9 @@ import {
   ArrowPathIcon,
   ArrowPathRoundedSquareIcon,
   ArrowUpCircleIcon,
+  PauseIcon,
   PencilSquareIcon,
+  PlayIcon,
   TrashIcon,
 } from '@heroicons/vue/24/outline'
 import { computed, ref, type Component, type Ref } from 'vue'
@@ -61,6 +69,8 @@ const reloadAll = () => {
 }
 
 const isCoreRestarting = ref(false)
+const isCoreStarting = ref(false)
+const isCoreStopping = ref(false)
 const isConfigReloading = ref(false)
 const isGeoUpdating = ref(false)
 const isDNSCacheFlushing = ref(false)
@@ -126,11 +136,40 @@ export const backendActions = computed<BackendAction[]>(() => {
       run: () =>
         runOnce(
           isCoreRestarting,
-          restartCoreAPI,
+          controllerAvailable.value ? restartCoreWithController : restartCoreAPI,
           'restartCoreSuccess',
           () => setTimeout(reloadAll, 500),
           { title: 'restartCore', message: 'restartCoreConfirm' },
         ),
+    })
+  }
+
+  if (can('coreStart')) {
+    actions.push({
+      key: k.startCore,
+      label: 'startCore',
+      icon: PlayIcon,
+      running: isCoreStarting.value,
+      opensModal: false,
+      run: () =>
+        runOnce(isCoreStarting, startCoreWithController, 'startCoreSuccess', () =>
+          setTimeout(reloadAll, 1000),
+        ),
+    })
+  }
+
+  if (can('coreStop')) {
+    actions.push({
+      key: k.stopCore,
+      label: 'stopCore',
+      icon: PauseIcon,
+      running: isCoreStopping.value,
+      opensModal: false,
+      run: () =>
+        runOnce(isCoreStopping, stopCoreWithController, 'stopCoreSuccess', undefined, {
+          title: 'stopCore',
+          message: 'stopCoreConfirm',
+        }),
     })
   }
 

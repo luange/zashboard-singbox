@@ -53,6 +53,16 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
         section: 'settingsSectionCoreOperations',
       },
       {
+        key: `${SETTINGS_MENU_KEY.backend}.startCore`,
+        label: 'startCore',
+        section: 'settingsSectionCoreOperations',
+      },
+      {
+        key: `${SETTINGS_MENU_KEY.backend}.stopCore`,
+        label: 'stopCore',
+        section: 'settingsSectionCoreOperations',
+      },
+      {
         key: `${SETTINGS_MENU_KEY.backend}.reloadConfigs`,
         label: 'reloadConfigs',
         section: 'settingsSectionCoreOperations',

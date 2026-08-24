@@ -33,6 +33,28 @@
           >
             <ArrowPathIcon class="h-3.5 w-3.5 opacity-60" />
           </button>
+          <button
+            v-if="proxyProvider.supportsPause"
+            class="btn btn-circle btn-ghost btn-sm z-30"
+            :title="proxyProvider.paused ? $t('restoreProvider') : $t('pauseProvider')"
+            @click.stop="toggleProviderPaused"
+          >
+            <PlayIcon
+              v-if="proxyProvider.paused"
+              class="h-3.5 w-3.5 opacity-60"
+            />
+            <PauseIcon
+              v-else
+              class="h-3.5 w-3.5 opacity-60"
+            />
+          </button>
+          <button
+            class="btn btn-circle btn-ghost btn-sm text-error z-30"
+            :title="$t('deleteProvider')"
+            @click.stop="deleteProviderClickHandler"
+          >
+            <TrashIcon class="h-3.5 w-3.5 opacity-60" />
+          </button>
         </div>
       </div>
       <div class="mt-2 space-y-1.5">
@@ -55,6 +77,12 @@
         <div class="text-base-content/60 text-xs">
           {{ $t('updated') }} {{ fromNow(proxyProvider.updatedAt) }}
         </div>
+        <div
+          v-if="proxyProvider.paused"
+          class="text-warning text-xs"
+        >
+          {{ $t('providerPausedHint') }}
+        </div>
       </div>
     </template>
     <template v-slot:preview>
@@ -67,14 +95,19 @@
 </template>
 
 <script setup lang="ts">
-import { proxyProviderHealthCheckAPI, updateProxyProviderAPI } from '@/assembly/proxies'
+import {
+  deleteProxyProviderAPI,
+  proxyProviderHealthCheckAPI,
+  setProxyProviderPausedAPI,
+  updateProxyProviderAPI,
+} from '@/assembly/proxies'
 import { useBounceOnVisible } from '@/composables/bouncein'
 import { useRenderProxyList } from '@/composables/renderProxies'
 import { notifyRequestError } from '@/helper/requestError'
 import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
 import { proxyProviederList } from '@/assembly/proxies'
-import { ArrowPathIcon, BoltIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, BoltIcon, PauseIcon, PlayIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import dayjs from 'dayjs'
 import { toFinite } from 'lodash'
 import { twMerge } from 'tailwind-merge'
@@ -87,6 +120,7 @@ import ProxyPreview from './ProxyPreview.vue'
 const props = defineProps<{
   name: string
 }>()
+const { t } = useI18n()
 
 const proxyProvider = computed(() =>
   proxyProviederList.value.find((group) => group.name === props.name)!,
@@ -104,7 +138,6 @@ const subscriptionInfo = computed(() => {
       return null
     }
 
-    const { t } = useI18n()
     const total = prettyBytesHelper(Total, { binary: true })
     const used = prettyBytesHelper(Download + Upload, { binary: true })
     const percentage = toFinite((((Download + Upload) / Total) * 100).toFixed(2))
@@ -162,6 +195,25 @@ const updateProviderClickHandler = async () => {
     notifyRequestError(e)
   } finally {
     isUpdating.value = false
+  }
+}
+
+const toggleProviderPaused = async () => {
+  try {
+    await setProxyProviderPausedAPI(props.name, !proxyProvider.value.paused)
+    await fetchProxies()
+  } catch (e) {
+    notifyRequestError(e)
+  }
+}
+
+const deleteProviderClickHandler = async () => {
+  if (!window.confirm(t('deleteProviderConfirm', { name: props.name }))) return
+  try {
+    await deleteProxyProviderAPI(props.name)
+    await fetchProxies()
+  } catch (e) {
+    notifyRequestError(e)
   }
 }
 
