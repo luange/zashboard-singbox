@@ -91,6 +91,27 @@ func TestRenderProviderOverridesRejectsNewProviderWithoutSource(t *testing.T) {
 	}
 }
 
+func TestRenderProviderOverridesRenamesProviderAndReferences(t *testing.T) {
+	base := []byte(`{"providers":[{"type":"remote","tag":"airport","url":"https://example.com/sub"}],"outbounds":[{"type":"smart","tag":"US","providers":["airport"]}]}`)
+	overrides := []byte(`{"version":1,"providers":{"airport":{"definition":{"update_interval":"6h"},"attach_to":["US"],"rename_to":"primary"}}}`)
+	rendered, err := renderProviderOverrides(base, overrides)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var config map[string]any
+	if err = json.Unmarshal(rendered, &config); err != nil {
+		t.Fatal(err)
+	}
+	provider := config["providers"].([]any)[0].(map[string]any)
+	if provider["tag"] != "primary" {
+		t.Fatalf("provider was not renamed: %#v", provider)
+	}
+	attached := config["outbounds"].([]any)[0].(map[string]any)["providers"].([]any)
+	if len(attached) != 1 || attached[0] != "primary" {
+		t.Fatalf("provider references were not renamed: %#v", attached)
+	}
+}
+
 func TestCheckRemoteProviderAcceptsSubscriptionContent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer test" {

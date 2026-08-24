@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -95,11 +96,38 @@ func detectSupervisor(kind, service string) (supervisor, error) {
 }
 
 type controller struct {
-	supervisor supervisor
-	token      string
-	core       *url.URL
-	client     *http.Client
-	overrides  *providerOverrideManager
+	supervisor           supervisor
+	token                string
+	core                 *url.URL
+	client               *http.Client
+	overrides            *providerOverrideManager
+	trustedLANProviderUI bool
+}
+
+func (c *controller) authorizedProvider(r *http.Request) bool {
+	if c.authorized(r) {
+		return true
+	}
+	if !c.trustedLANProviderUI {
+		return false
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		host = r.RemoteAddr
+	}
+	remoteIP := net.ParseIP(strings.Trim(host, "[]"))
+	if remoteIP == nil || (!remoteIP.IsPrivate() && !remoteIP.IsLoopback()) {
+		return false
+	}
+	origin, err := url.Parse(r.Header.Get("Origin"))
+	if err != nil || origin.Hostname() == "" {
+		return false
+	}
+	requestHost := r.Host
+	if parsedHost, _, splitErr := net.SplitHostPort(r.Host); splitErr == nil {
+		requestHost = parsedHost
+	}
+	return strings.EqualFold(strings.Trim(requestHost, "[]"), origin.Hostname())
 }
 
 func allowBrowserControllerAPI(w http.ResponseWriter, r *http.Request) bool {
@@ -166,7 +194,7 @@ func (c *controller) action(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
-	if !c.authorized(r) {
+	if !c.authorizedProvider(r) {
 		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid controller token"})
 		return
 	}
@@ -210,10 +238,30 @@ func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := c.overrides.mutate(func(document *providerOverrideDocument) error {
-			if previous, exists := document.Providers[tag]; exists {
+			storageTag := resolveProviderOverrideKey(*document, tag)
+			if override.RenameTo == storageTag {
+				override.RenameTo = ""
+			}
+			outputTag := storageTag
+			if override.RenameTo != "" {
+				outputTag = override.RenameTo
+			}
+			for source, existing := range document.Providers {
+				if source == storageTag {
+					continue
+				}
+				existingOutput := source
+				if existing.RenameTo != "" {
+					existingOutput = existing.RenameTo
+				}
+				if existingOutput == outputTag {
+					return errors.New("provider name conflicts with another override")
+				}
+			}
+			if previous, exists := document.Providers[storageTag]; exists {
 				override.Definition = deepMerge(previous.Definition, override.Definition)
 			}
-			effective, err := c.overrides.baseDefinition(tag)
+			effective, err := c.overrides.baseDefinition(storageTag)
 			if err != nil {
 				return err
 			}
@@ -227,7 +275,7 @@ func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
 			if err := checker(checkContext, effective); err != nil {
 				return fmt.Errorf("provider check failed: %w", err)
 			}
-			document.Providers[tag] = override
+			document.Providers[storageTag] = override
 			return nil
 		}); err != nil {
 			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
@@ -244,7 +292,7 @@ func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if err := c.overrides.mutate(func(document *providerOverrideDocument) error {
-			delete(document.Providers, tag)
+			delete(document.Providers, resolveProviderOverrideKey(*document, tag))
 			return nil
 		}); err != nil {
 			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
@@ -303,6 +351,7 @@ func main() {
 	overridePath := flag.String("provider-overrides", "", "provider override document path")
 	configBuilder := flag.String("config-builder", "", "fixed runtime config builder command")
 	baseConfig := flag.String("base-config", "", "base sing-box configuration used for redacted provider metadata")
+	trustedLANProviderUI := flag.Bool("trusted-lan-provider-ui", false, "allow same-host browser Provider management from private addresses without a token")
 	flag.Parse()
 
 	if *token == "" {
@@ -322,7 +371,8 @@ func main() {
 	}
 	ctl := &controller{
 		supervisor: sup, token: *token, core: core, client: &http.Client{Timeout: 2 * time.Second},
-		overrides: &providerOverrideManager{path: *overridePath, builder: *configBuilder, baseConfig: *baseConfig, check: checkRemoteProvider},
+		overrides:            &providerOverrideManager{path: *overridePath, builder: *configBuilder, baseConfig: *baseConfig, check: checkRemoteProvider},
+		trustedLANProviderUI: *trustedLANProviderUI,
 	}
 	proxy := httputil.NewSingleHostReverseProxy(core)
 	static := http.FileServer(http.FS(ui))

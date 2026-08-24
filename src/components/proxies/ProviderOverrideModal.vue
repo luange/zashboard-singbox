@@ -10,7 +10,6 @@
         <input
           v-model.trim="form.tag"
           class="input input-bordered input-sm"
-          :disabled="Boolean(providerOverrideTarget)"
           placeholder="airport-backup"
         />
       </label>
@@ -152,7 +151,12 @@
         </button>
         <button
           class="btn btn-primary btn-sm"
-          :disabled="saving || !form.tag || (!providerOverrideTarget && !form.url)"
+          :disabled="
+            saving ||
+            !form.tag ||
+            (!providerOverrideTarget && form.type === 'remote' && !form.url) ||
+            (!providerOverrideTarget && form.type === 'local' && !form.path)
+          "
           @click="save"
         >
           <span
@@ -192,6 +196,7 @@ const headersPlaceholder = computed(() =>
 )
 const form = reactive({
   tag: '',
+  sourceTag: '',
   type: 'remote' as 'remote' | 'local',
   url: '',
   path: '',
@@ -208,6 +213,7 @@ const form = reactive({
 
 const reset = () => {
   form.tag = providerOverrideTarget.value
+  form.sourceTag = providerOverrideTarget.value
   form.type = 'remote'
   form.url = ''
   form.path = ''
@@ -233,6 +239,7 @@ watch(providerOverrideModalOpen, async (open) => {
     const override = data.providers[providerOverrideTarget.value]
     if (!override) return
     hasOverride.value = Boolean(override.overridden)
+    form.sourceTag = override.source_tag || providerOverrideTarget.value
     urlConfigured.value = Boolean(override.definition.url_configured)
     headersConfigured.value = Boolean(override.definition.headers_configured)
     form.type = override.definition.type || form.type
@@ -274,7 +281,11 @@ const save = async () => {
       definition.headers = headers
     }
     if (form.type === 'local' && form.path) definition.path = form.path
-    await putProviderOverrideAPI(form.tag, { definition, attach_to: form.attachTo })
+    await putProviderOverrideAPI(form.sourceTag || form.tag, {
+      definition,
+      attach_to: form.attachTo,
+      rename_to: form.tag !== (form.sourceTag || form.tag) ? form.tag : '',
+    })
     providerOverrideModalOpen.value = false
     window.setTimeout(fetchProxies, 1000)
   } catch (error) {
@@ -288,7 +299,7 @@ const restoreOriginal = async () => {
   if (!window.confirm(t('restoreOriginalProviderConfirm'))) return
   saving.value = true
   try {
-    await deleteProviderOverrideAPI(form.tag)
+    await deleteProviderOverrideAPI(form.sourceTag || form.tag)
     providerOverrideModalOpen.value = false
     window.setTimeout(fetchProxies, 1000)
   } catch (error) {

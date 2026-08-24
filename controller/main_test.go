@@ -43,6 +43,24 @@ func TestControllerAuthorization(t *testing.T) {
 	}
 }
 
+func TestTrustedLANProviderAuthorizationRequiresSameHostBrowserOrigin(t *testing.T) {
+	controller := &controller{token: "secret", trustedLANProviderUI: true}
+	request := httptest.NewRequest(http.MethodGet, "http://10.30.0.115:19091/controller/v1/provider-overrides", nil)
+	request.RemoteAddr = "192.168.0.2:54321"
+	request.Header.Set("Origin", "http://10.30.0.115:9090")
+	if !controller.authorizedProvider(request) {
+		t.Fatal("same-host private browser origin should be accepted")
+	}
+	request.Header.Set("Origin", "https://attacker.example")
+	if controller.authorizedProvider(request) {
+		t.Fatal("different browser origin must be rejected")
+	}
+	request.Header.Del("Origin")
+	if controller.authorizedProvider(request) {
+		t.Fatal("non-browser request without token must be rejected")
+	}
+}
+
 func TestServiceNameValidation(t *testing.T) {
 	for _, name := range []string{"sing-box", "singbox.service", "singbox@edge"} {
 		if !serviceNamePattern.MatchString(name) {

@@ -90,8 +90,20 @@ separately configured controller port.
 When the core UI and controller use different ports, set `controllerPort` on
 the backend (default `19091`). The dashboard keeps runtime Provider operations
 on the Clash-compatible core API and sends definition overrides to the
-controller. The controller permits credential-free CORS discovery, while every
-mutating request still requires its bearer token; it never uses cookies.
+controller. The controller permits credential-free CORS discovery; its default
+mode requires a bearer token for mutations and never uses cookies.
+
+Installations whose Clash API is intentionally unauthenticated on a trusted
+private LAN may set `TRUSTED_LAN_PROVIDER_UI_ARG=-trusted-lan-provider-ui`.
+This exception applies only to Provider management, only to private or loopback
+client addresses, and only when the browser Origin hostname exactly matches the
+controller request hostname. Lifecycle actions continue to require the bearer
+token. The packaged default remains token-only.
+
+Renaming an existing Provider is a real tag migration: the runtime Provider tag
+and every selected Smart group's `providers` reference are changed together.
+Conflicting names are rejected before restart, and deleting the override
+restores the original tag and references.
 
 ## Provider lifecycle
 

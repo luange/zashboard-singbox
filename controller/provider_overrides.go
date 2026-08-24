@@ -23,6 +23,7 @@ const providerOverrideVersion = 1
 type providerOverride struct {
 	Definition map[string]any `json:"definition"`
 	AttachTo   []string       `json:"attach_to,omitempty"`
+	RenameTo   string         `json:"rename_to,omitempty"`
 }
 
 type providerOverrideDocument struct {
@@ -42,6 +43,7 @@ type providerOverrideView struct {
 	Definition map[string]any `json:"definition"`
 	AttachTo   []string       `json:"attach_to,omitempty"`
 	Overridden bool           `json:"overridden"`
+	SourceTag  string         `json:"source_tag,omitempty"`
 }
 
 func emptyProviderOverrideDocument() providerOverrideDocument {
@@ -75,6 +77,9 @@ func validateProviderOverride(tag string, override providerOverride) error {
 	}
 	if definitionTag, exists := override.Definition["tag"]; exists && definitionTag != tag {
 		return errors.New("definition tag must match request path")
+	}
+	if override.RenameTo != "" && !serviceNamePattern.MatchString(override.RenameTo) {
+		return errors.New("invalid renamed provider tag")
 	}
 	if providerType, exists := override.Definition["type"]; exists && providerType != "remote" && providerType != "local" {
 		return errors.New("provider type must be remote or local")
@@ -155,6 +160,18 @@ func (m *providerOverrideManager) mutate(mutation func(*providerOverrideDocument
 	return nil
 }
 
+func resolveProviderOverrideKey(document providerOverrideDocument, requested string) string {
+	if _, exists := document.Providers[requested]; exists {
+		return requested
+	}
+	for source, override := range document.Providers {
+		if override.RenameTo == requested {
+			return source
+		}
+	}
+	return requested
+}
+
 func (m *providerOverrideManager) baseDefinition(tag string) (map[string]any, error) {
 	if m.baseConfig == "" {
 		return nil, nil
@@ -230,7 +247,12 @@ func (m *providerOverrideManager) view(document providerOverrideDocument) (map[s
 				attachTo = base.AttachTo
 			}
 		}
-		views[tag] = providerOverrideView{Definition: redactProviderOverride(providerOverride{Definition: definition}).Definition, AttachTo: attachTo, Overridden: true}
+		outputTag := tag
+		if override.RenameTo != "" {
+			outputTag = override.RenameTo
+			delete(views, tag)
+		}
+		views[outputTag] = providerOverrideView{Definition: redactProviderOverride(providerOverride{Definition: definition}).Definition, AttachTo: attachTo, Overridden: true, SourceTag: tag}
 	}
 	return views, nil
 }
@@ -384,22 +406,31 @@ func renderProviderOverrides(baseData, overrideData []byte) ([]byte, error) {
 		if err := validateProviderOverride(tag, override); err != nil {
 			return nil, fmt.Errorf("provider %s: %w", tag, err)
 		}
+		outputTag := tag
+		if override.RenameTo != "" {
+			outputTag = override.RenameTo
+		}
+		if _, conflict := providerIndex[outputTag]; conflict && outputTag != tag {
+			return nil, fmt.Errorf("provider rename %s conflicts with existing provider", outputTag)
+		}
 		definition := map[string]any{}
 		if index, exists := providerIndex[tag]; exists {
 			definition, _ = providers[index].(map[string]any)
 			definition = deepMerge(definition, override.Definition)
-			definition["tag"] = tag
+			definition["tag"] = outputTag
 			providers[index] = definition
+			delete(providerIndex, tag)
+			providerIndex[outputTag] = index
 		} else {
 			definition = deepMerge(nil, override.Definition)
-			definition["tag"] = tag
+			definition["tag"] = outputTag
 			if definition["type"] == nil {
 				definition["type"] = "remote"
 			}
 			if definition["url"] == nil && definition["path"] == nil {
 				return nil, fmt.Errorf("new provider %s requires url or path", tag)
 			}
-			providerIndex[tag] = len(providers)
+			providerIndex[outputTag] = len(providers)
 			providers = append(providers, definition)
 		}
 		if override.AttachTo != nil {
@@ -420,12 +451,12 @@ func renderProviderOverrides(baseData, overrideData []byte) ([]byte, error) {
 				}
 				updated := make([]any, 0, len(rawProviders)+1)
 				for _, raw := range rawProviders {
-					if raw != tag {
+					if raw != tag && raw != outputTag {
 						updated = append(updated, raw)
 					}
 				}
 				if wanted[group] {
-					updated = append(updated, tag)
+					updated = append(updated, outputTag)
 				}
 				outbound["providers"] = updated
 			}

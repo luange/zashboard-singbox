@@ -59,6 +59,8 @@ export type ProviderOverride = {
   }
   attach_to?: string[]
   overridden?: boolean
+  source_tag?: string
+  rename_to?: string
 }
 
 export const fetchProviderOverridesAPI = () =>
