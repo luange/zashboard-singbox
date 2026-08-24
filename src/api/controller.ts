@@ -1,7 +1,14 @@
-import { activeBackend } from '@/store/setup'
-import axios from 'axios'
+import { activeBackend, activeUuid, openBackendManager } from '@/store/setup'
+import axios, { AxiosError } from 'axios'
 
 const controllerClient = axios.create()
+
+controllerClient.interceptors.response.use(null, (error: AxiosError) => {
+  if (error.status === 401 && activeUuid.value) {
+    openBackendManager({ mode: 'edit', uuid: activeUuid.value })
+  }
+  return Promise.reject(error)
+})
 
 const controllerBaseURL = () => {
   const backend = activeBackend.value
