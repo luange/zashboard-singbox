@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/subtle"
 	"encoding/json"
 	"errors"
@@ -98,6 +99,7 @@ type controller struct {
 	token      string
 	core       *url.URL
 	client     *http.Client
+	overrides  *providerOverrideManager
 }
 
 func (c *controller) authorized(r *http.Request) bool {
@@ -151,6 +153,94 @@ func (c *controller) action(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusAccepted, map[string]string{"action": action})
 }
 
+func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
+	if !c.authorized(r) {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "invalid controller token"})
+		return
+	}
+	if c.overrides == nil || c.overrides.path == "" {
+		writeJSON(w, http.StatusNotImplemented, map[string]string{"error": "provider overrides are not configured"})
+		return
+	}
+	tag := strings.TrimPrefix(r.URL.Path, "/controller/v1/provider-overrides")
+	tag = strings.TrimPrefix(tag, "/")
+	switch r.Method {
+	case http.MethodGet:
+		if tag != "" {
+			writeJSON(w, http.StatusMethodNotAllowed, map[string]string{"error": "list endpoint only"})
+			return
+		}
+		document, err := c.overrides.load()
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
+		}
+		for name, override := range document.Providers {
+			document.Providers[name] = redactProviderOverride(override)
+		}
+		writeJSON(w, http.StatusOK, document)
+	case http.MethodPut:
+		if tag == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider tag is required"})
+			return
+		}
+		var override providerOverride
+		decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&override); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := validateProviderOverride(tag, override); err != nil {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := c.overrides.mutate(func(document *providerOverrideDocument) error {
+			if previous, exists := document.Providers[tag]; exists {
+				override.Definition = deepMerge(previous.Definition, override.Definition)
+			}
+			checker := c.overrides.check
+			if checker == nil {
+				checker = checkRemoteProvider
+			}
+			checkContext, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+			defer cancel()
+			if err := checker(checkContext, override.Definition); err != nil {
+				return fmt.Errorf("provider check failed: %w", err)
+			}
+			document.Providers[tag] = override
+			return nil
+		}); err != nil {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := c.supervisor.Action("restart"); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]string{"provider": tag, "status": "applied"})
+	case http.MethodDelete:
+		if tag == "" {
+			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider tag is required"})
+			return
+		}
+		if err := c.overrides.mutate(func(document *providerOverrideDocument) error {
+			delete(document.Providers, tag)
+			return nil
+		}); err != nil {
+			writeJSON(w, http.StatusUnprocessableEntity, map[string]string{"error": err.Error()})
+			return
+		}
+		if err := c.supervisor.Action("restart"); err != nil {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": err.Error()})
+			return
+		}
+		writeJSON(w, http.StatusAccepted, map[string]string{"provider": tag, "status": "restored"})
+	default:
+		w.WriteHeader(http.StatusMethodNotAllowed)
+	}
+}
+
 func isCoreAPIPath(path string) bool {
 	for _, prefix := range []string{
 		"/version", "/capabilities", "/configs", "/proxies", "/rules", "/connections",
@@ -165,12 +255,34 @@ func isCoreAPIPath(path string) bool {
 }
 
 func main() {
+	if len(os.Args) == 5 && os.Args[1] == "render-provider-overrides" {
+		baseData, err := os.ReadFile(os.Args[2])
+		if err != nil {
+			log.Fatal(err)
+		}
+		overrideData, err := os.ReadFile(os.Args[3])
+		if errors.Is(err, os.ErrNotExist) {
+			overrideData = nil
+		} else if err != nil {
+			log.Fatal(err)
+		}
+		rendered, err := renderProviderOverrides(baseData, overrideData)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err = os.WriteFile(os.Args[4], append(rendered, '\n'), 0o600); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	listen := flag.String("listen", "127.0.0.1:9091", "controller listen address")
 	coreURL := flag.String("core", "http://127.0.0.1:9090", "sing-box Clash API URL")
 	service := flag.String("service", "sing-box", "allow-listed service name")
 	supervisorKind := flag.String("supervisor", "auto", "auto, systemd, or openrc")
 	uiDir := flag.String("ui", "./dist", "built dashboard directory")
 	token := flag.String("token", os.Getenv("ZASHBOARD_CONTROLLER_TOKEN"), "controller bearer token")
+	overridePath := flag.String("provider-overrides", "", "provider override document path")
+	configBuilder := flag.String("config-builder", "", "fixed runtime config builder command")
 	flag.Parse()
 
 	if *token == "" {
@@ -188,7 +300,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	ctl := &controller{supervisor: sup, token: *token, core: core, client: &http.Client{Timeout: 2 * time.Second}}
+	ctl := &controller{
+		supervisor: sup, token: *token, core: core, client: &http.Client{Timeout: 2 * time.Second},
+		overrides: &providerOverrideManager{path: *overridePath, builder: *configBuilder, check: checkRemoteProvider},
+	}
 	proxy := httputil.NewSingleHostReverseProxy(core)
 	static := http.FileServer(http.FS(ui))
 
@@ -196,6 +311,8 @@ func main() {
 		switch {
 		case r.URL.Path == "/controller/v1/status" && r.Method == http.MethodGet:
 			ctl.status(w, r)
+		case strings.HasPrefix(r.URL.Path, "/controller/v1/provider-overrides"):
+			ctl.providerOverrides(w, r)
 		case strings.HasPrefix(r.URL.Path, "/controller/v1/") && r.Method == http.MethodPost:
 			ctl.action(w, r)
 		case isCoreAPIPath(r.URL.Path):

@@ -3,7 +3,7 @@
 name="zashboard-controller"
 description="Independent Zashboard UI and sing-box lifecycle controller"
 command="/usr/local/bin/zashboard-controller"
-command_args="-listen ${LISTEN:-127.0.0.1:9091} -core ${CORE_URL:-http://127.0.0.1:9090} -service ${CORE_SERVICE:-sing-box} -supervisor openrc -ui ${UI_DIR:-/usr/share/zashboard-singbox}"
+command_args="-listen ${LISTEN:-127.0.0.1:9091} -core ${CORE_URL:-http://127.0.0.1:9090} -service ${CORE_SERVICE:-sing-box} -supervisor openrc -ui ${UI_DIR:-/usr/share/zashboard-singbox} -provider-overrides ${PROVIDER_OVERRIDES:-/etc/zashboard-controller/provider-overrides.json} -config-builder ${CONFIG_BUILDER:-/usr/local/sbin/singbox-build-runtime-config}"
 command_background="yes"
 pidfile="/run/${RC_SVCNAME}.pid"
 output_log="/var/log/${RC_SVCNAME}.log"

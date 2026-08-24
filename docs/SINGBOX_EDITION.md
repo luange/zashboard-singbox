@@ -17,8 +17,9 @@ filesystem paths, or host addresses are built into the UI.
 - Smart is treated as a native group type. The UI consumes the core's current
   selection and Smart metadata rather than emulating URLTest behavior.
 - `zashboard-controller` is an optional companion process. It serves the UI,
-  proxies the core API, and exposes only four supervisor operations. It never
-  executes user-supplied commands.
+  proxies the core API, exposes the four allow-listed supervisor operations,
+  and applies declarative Provider overrides through one fixed config builder.
+  It never executes user-supplied commands.
 
 ## Controller
 
@@ -32,7 +33,9 @@ zashboard-controller \
   -core http://127.0.0.1:9090 \
   -service singbox \
   -supervisor auto \
-  -ui /usr/share/zashboard-singbox
+  -ui /usr/share/zashboard-singbox \
+  -provider-overrides /etc/zashboard-controller/provider-overrides.json \
+  -config-builder /usr/local/sbin/singbox-build-runtime-config
 ```
 
 The service name is validated and passed only to systemd or OpenRC with one of
@@ -47,6 +50,43 @@ portable exported form.
 Lifecycle actions are not acknowledged merely because the supervisor command
 returned. The dashboard polls the independent controller until the core is
 actually reachable after start/restart, or actually stopped after stop.
+
+## Provider overrides
+
+Upstream Zashboard can display, update, and health-check Clash-compatible
+Providers, but it cannot create or edit subscription definitions. This edition
+adds a general Provider override layer instead of editing the original sing-box
+configuration:
+
+- multiple remote or local Providers can be injected;
+- an existing Provider can be partially overridden while unspecified fields
+  continue to come from the base configuration;
+- each Provider can be attached to zero or more Smart groups through
+  `attach_to`;
+- deleting an override restores the original Provider definition and group
+  membership on the next validated restart;
+- a newly supplied remote address must pass a bounded HTTP content check before
+  the override is persisted;
+- the merged runtime configuration is built and checked before the service is
+  restarted.
+
+The authenticated endpoints are:
+
+- `GET /controller/v1/provider-overrides`
+- `PUT /controller/v1/provider-overrides/{tag}`
+- `DELETE /controller/v1/provider-overrides/{tag}`
+
+The override file is atomically written with mode `0600`. GET responses never
+return subscription URLs or headers; only `url_configured` and
+`headers_configured` booleans are exposed. Query strings and fragments are
+removed from displayed health-check URLs. Check failures return only a redacted
+reason. The original configuration remains unchanged, so the feature is
+reversible and survives subscription regeneration.
+
+The dashboard must be opened through the independent controller address to use
+editing and lifecycle controls. A dashboard served directly by the core keeps
+ordinary Clash-compatible display/update behavior but cannot manage the host
+service or its configuration files.
 
 ## Provider lifecycle
 

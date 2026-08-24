@@ -6,14 +6,15 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/zashboard-controller.env
-ExecStart=/usr/local/bin/zashboard-controller -listen ${LISTEN} -core ${CORE_URL} -service ${CORE_SERVICE} -supervisor systemd -ui ${UI_DIR}
+ExecStart=/usr/local/bin/zashboard-controller -listen ${LISTEN} -core ${CORE_URL} -service ${CORE_SERVICE} -supervisor systemd -ui ${UI_DIR} -provider-overrides ${PROVIDER_OVERRIDES} -config-builder ${CONFIG_BUILDER}
 Restart=on-failure
 RestartSec=2
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ProtectHome=true
+ProtectHome=read-only
 ReadOnlyPaths=/usr/share/zashboard-singbox
+ReadWritePaths=/etc/zashboard-controller /run/singbox
 
 [Install]
 WantedBy=multi-user.target

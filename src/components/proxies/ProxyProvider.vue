@@ -12,6 +12,14 @@
         </div>
         <div class="flex items-center gap-1.5">
           <button
+            v-if="controllerAvailable"
+            class="btn btn-circle btn-ghost btn-sm z-30"
+            :title="$t('editProviderOverride')"
+            @click.stop="openProviderOverride(props.name)"
+          >
+            <PencilSquareIcon class="h-3.5 w-3.5 opacity-60" />
+          </button>
+          <button
             class="btn btn-circle btn-ghost btn-sm z-30"
             @click.stop="healthCheckClickHandler"
           >
@@ -108,6 +116,9 @@ import { fromNow, prettyBytesHelper } from '@/helper/utils'
 import { fetchProxies } from '@/assembly/proxies'
 import { proxyProviederList } from '@/assembly/proxies'
 import { ArrowPathIcon, BoltIcon, PauseIcon, PlayIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { PencilSquareIcon } from '@heroicons/vue/24/outline'
+import { controllerAvailable } from '@/assembly/controller'
+import { openProviderOverride } from '@/composables/providerOverrides'
 import dayjs from 'dayjs'
 import { toFinite } from 'lodash'
 import { twMerge } from 'tailwind-merge'

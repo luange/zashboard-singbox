@@ -12,6 +12,18 @@
       @scroll.passive="handleScroll"
     >
       <ProxiesCtrl />
+      <div
+        v-if="controllerAvailable && proxiesTabShow === PROXY_TAB_TYPE.PROVIDER"
+        class="flex justify-end px-3 pt-2 md:pr-5"
+      >
+        <button
+          class="btn btn-primary btn-sm"
+          @click="openProviderOverride()"
+        >
+          <PlusIcon class="h-4 w-4" />
+          {{ $t('addProviderOverride') }}
+        </button>
+      </div>
       <FolderTopBar v-if="foldersUiVisible" />
       <template v-if="displayTwoColumns">
         <div class="grid grid-cols-2 gap-3 p-3 md:pr-2">
@@ -42,6 +54,7 @@
       </div>
     </div>
     <ProxyGroupChainModal />
+    <ProviderOverrideModal />
   </div>
 </template>
 
@@ -53,6 +66,10 @@ import ProxyGroup from '@/components/proxies/ProxyGroup.vue'
 import ProxyGroupForMobile from '@/components/proxies/ProxyGroupForMobile.vue'
 import ProxyProvider from '@/components/proxies/ProxyProvider.vue'
 import ProxyGroupChainModal from '@/components/proxies/ProxyGroupChainModal.vue'
+import ProviderOverrideModal from '@/components/proxies/ProviderOverrideModal.vue'
+import { controllerAvailable } from '@/assembly/controller'
+import { openProviderOverride } from '@/composables/providerOverrides'
+import { PlusIcon } from '@heroicons/vue/24/outline'
 import { usePaddingForViews } from '@/composables/paddingViews'
 import {
   disableProxiesPageScroll,

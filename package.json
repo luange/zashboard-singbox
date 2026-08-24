@@ -1,6 +1,6 @@
 {
   "name": "zashboard-singbox",
-  "version": "3.22.0-sb.2",
+  "version": "3.22.0-sb.3",
   "description": "A capability-driven dashboard for sing-box and Clash-compatible APIs",
   "license": "MIT",
   "type": "module",

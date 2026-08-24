@@ -269,6 +269,18 @@ const ru: LANG_MESSAGE = {
   proxyProvider: 'Провайдер прокси',
   pauseProvider: 'Приостановить автоматическое обслуживание провайдера',
   restoreProvider: 'Возобновить автоматическое обслуживание провайдера',
+  providerOverride: 'Переопределение Provider',
+  addProviderOverride: 'Добавить Provider',
+  editProviderOverride: 'Изменить переопределение Provider',
+  providerName: 'Имя Provider',
+  providerUrl: 'URL подписки',
+  providerSecretPreserved: 'Настроено; оставьте пустым, чтобы сохранить секрет',
+  updateInterval: 'Интервал обновления',
+  attachProviderGroups: 'Подключить к группам',
+  providerOverrideRestartHint:
+    'Перед сохранением конфигурация проверяется, затем ядро перезапускается.',
+  restoreOriginalProvider: 'Удалить переопределение',
+  restoreOriginalProviderConfirm: 'Удалить переопределение и восстановить исходный Provider?',
   deleteProvider: 'Отключить провайдера',
   deleteProviderConfirm:
     'Отключить провайдера {name}? Текущие узлы останутся доступны, провайдера можно восстановить.',

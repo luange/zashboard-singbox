@@ -267,6 +267,19 @@ const en = {
   proxyProvider: 'Proxy provider',
   pauseProvider: 'Pause automatic provider maintenance',
   restoreProvider: 'Restore automatic provider maintenance',
+  providerOverride: 'Provider override',
+  addProviderOverride: 'Add Provider',
+  editProviderOverride: 'Edit Provider override',
+  providerName: 'Provider name',
+  providerUrl: 'Subscription URL',
+  providerSecretPreserved: 'Configured; leave blank to preserve the current secret',
+  updateInterval: 'Update interval',
+  attachProviderGroups: 'Attach to policy groups',
+  providerOverrideRestartHint:
+    'Saving validates the merged configuration and restarts the core. Existing connections may briefly reconnect.',
+  restoreOriginalProvider: 'Remove override',
+  restoreOriginalProviderConfirm:
+    'Remove this override and restore the original Provider definition?',
   deleteProvider: 'Disable provider',
   deleteProviderConfirm:
     'Disable provider {name}? Existing nodes stay available and it can be restored here.',
