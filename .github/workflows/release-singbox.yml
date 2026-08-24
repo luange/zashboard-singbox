@@ -34,11 +34,16 @@ jobs:
           CGO_ENABLED: '0'
         run: go build -trimpath -ldflags='-s -w' -o ../zashboard-controller-linux-${{ matrix.goarch }} .
       - name: Package UI
-        run: zip -qr zashboard-singbox-dist-${{ matrix.goarch }}.zip dist
-      - run: sha256sum zashboard-controller-linux-${{ matrix.goarch }} zashboard-singbox-dist-${{ matrix.goarch }}.zip > SHA256SUMS-${{ matrix.goarch }}
+        if: matrix.goarch == 'amd64'
+        run: zip -qr zashboard-singbox-dist.zip dist
+      - name: Write controller checksum
+        run: sha256sum zashboard-controller-linux-${{ matrix.goarch }} > SHA256SUMS-${{ matrix.goarch }}
+      - name: Add architecture-independent UI checksum
+        if: matrix.goarch == 'amd64'
+        run: sha256sum zashboard-singbox-dist.zip >> SHA256SUMS-${{ matrix.goarch }}
       - uses: softprops/action-gh-release@v2
         with:
           files: |
             zashboard-controller-linux-${{ matrix.goarch }}
-            zashboard-singbox-dist-${{ matrix.goarch }}.zip
             SHA256SUMS-${{ matrix.goarch }}
+            zashboard-singbox-dist.zip
