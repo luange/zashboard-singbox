@@ -1,6 +1,15 @@
 import { activeBackend } from '@/store/setup'
 import axios from 'axios'
 
+const controllerClient = axios.create()
+
+const controllerBaseURL = () => {
+  const backend = activeBackend.value
+  if (!backend) return ''
+  const port = backend.controllerPort || (backend.port === '19091' ? backend.port : '19091')
+  return `${backend.protocol}://${backend.host}:${port}`
+}
+
 export type ControllerStatus = {
   active: boolean
   coreReachable: boolean
@@ -13,10 +22,14 @@ const controllerHeaders = () => ({
 })
 
 export const fetchControllerStatusAPI = () =>
-  axios.get<ControllerStatus>('/controller/v1/status', { timeout: 2500 })
+  controllerClient.get<ControllerStatus>('/controller/v1/status', {
+    baseURL: controllerBaseURL(),
+    timeout: 2500,
+  })
 
 export const controlCoreAPI = (action: 'start' | 'stop' | 'restart') =>
-  axios.post(`/controller/v1/${action}`, undefined, {
+  controllerClient.post(`/controller/v1/${action}`, undefined, {
+    baseURL: controllerBaseURL(),
     headers: controllerHeaders(),
     timeout: 10000,
   })
@@ -38,22 +51,25 @@ export type ProviderOverride = {
     }
   }
   attach_to?: string[]
+  overridden?: boolean
 }
 
 export const fetchProviderOverridesAPI = () =>
-  axios.get<{ version: number; providers: Record<string, ProviderOverride> }>(
+  controllerClient.get<{ version: number; providers: Record<string, ProviderOverride> }>(
     '/controller/v1/provider-overrides',
-    { headers: controllerHeaders(), timeout: 5000 },
+    { baseURL: controllerBaseURL(), headers: controllerHeaders(), timeout: 5000 },
   )
 
 export const putProviderOverrideAPI = (tag: string, override: ProviderOverride) =>
-  axios.put(`/controller/v1/provider-overrides/${encodeURIComponent(tag)}`, override, {
+  controllerClient.put(`/controller/v1/provider-overrides/${encodeURIComponent(tag)}`, override, {
+    baseURL: controllerBaseURL(),
     headers: controllerHeaders(),
     timeout: 30_000,
   })
 
 export const deleteProviderOverrideAPI = (tag: string) =>
-  axios.delete(`/controller/v1/provider-overrides/${encodeURIComponent(tag)}`, {
+  controllerClient.delete(`/controller/v1/provider-overrides/${encodeURIComponent(tag)}`, {
+    baseURL: controllerBaseURL(),
     headers: controllerHeaders(),
     timeout: 30_000,
   })

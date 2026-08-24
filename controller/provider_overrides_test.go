@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -117,5 +118,28 @@ func TestCheckRemoteProviderRejectsHTMLAndEmpty(t *testing.T) {
 		if err == nil {
 			t.Fatalf("expected response %q to be rejected", body)
 		}
+	}
+}
+
+func TestProviderOverrideViewIncludesRedactedBaseMetadata(t *testing.T) {
+	path := t.TempDir() + "/config.json"
+	base := `{"providers":[{"type":"remote","tag":"airport","url":"https://example.com/sub?token=secret","format":"clash"}],"outbounds":[{"type":"smart","tag":"US","providers":["airport"]}]}`
+	if err := os.WriteFile(path, []byte(base), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	manager := providerOverrideManager{baseConfig: path}
+	views, err := manager.view(emptyProviderOverrideDocument())
+	if err != nil {
+		t.Fatal(err)
+	}
+	provider := views["airport"]
+	if provider.Overridden || provider.Definition["url_configured"] != true {
+		t.Fatalf("unexpected provider view: %#v", provider)
+	}
+	if _, exists := provider.Definition["url"]; exists {
+		t.Fatal("base subscription URL leaked")
+	}
+	if len(provider.AttachTo) != 1 || provider.AttachTo[0] != "US" {
+		t.Fatalf("base attachments missing: %#v", provider.AttachTo)
 	}
 }

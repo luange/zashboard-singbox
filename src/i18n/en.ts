@@ -271,6 +271,10 @@ const en = {
   addProviderOverride: 'Add Provider',
   editProviderOverride: 'Edit Provider override',
   providerName: 'Provider name',
+  providerType: 'Provider type',
+  providerPath: 'Local file path',
+  providerHeaders: 'Subscription headers JSON (blank preserves)',
+  providerHeadersInvalid: 'Headers must be a JSON object',
   providerUrl: 'Subscription URL',
   providerSecretPreserved: 'Configured; leave blank to preserve the current secret',
   updateInterval: 'Update interval',
@@ -359,6 +363,7 @@ const en = {
   stopCoreSuccess: 'Core stopped successfully',
   stopCoreConfirm: 'The proxy service will become unavailable until it is started again.',
   controllerToken: 'Controller token',
+  controllerPort: 'Controller port',
   restartCoreConfirm:
     'Restart the core now? The proxy service will be briefly interrupted and existing connections will be dropped.',
   checkCoreUpgrade: 'Check for core upgrades',

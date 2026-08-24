@@ -12,6 +12,7 @@ export type Backend = {
   secondaryPath: string // 仅 clash
   password: string // 通用:Clash secret / sing-box gRPC Bearer token
   controllerToken?: string // optional zashboard-controller bearer token
+  controllerPort?: string // optional independent controller port; defaults to 19091
   uuid: string
   label?: string
   disableUpgradeCore?: boolean // 仅 clash

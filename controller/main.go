@@ -102,6 +102,18 @@ type controller struct {
 	overrides  *providerOverrideManager
 }
 
+func allowBrowserControllerAPI(w http.ResponseWriter, r *http.Request) bool {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+	w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, PATCH, DELETE, POST, OPTIONS")
+	w.Header().Set("Access-Control-Max-Age", "600")
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusNoContent)
+		return true
+	}
+	return false
+}
+
 func (c *controller) authorized(r *http.Request) bool {
 	if c.token == "" {
 		return false
@@ -175,10 +187,12 @@ func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
 			return
 		}
-		for name, override := range document.Providers {
-			document.Providers[name] = redactProviderOverride(override)
+		views, err := c.overrides.view(document)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]string{"error": err.Error()})
+			return
 		}
-		writeJSON(w, http.StatusOK, document)
+		writeJSON(w, http.StatusOK, map[string]any{"version": document.Version, "providers": views})
 	case http.MethodPut:
 		if tag == "" {
 			writeJSON(w, http.StatusBadRequest, map[string]string{"error": "provider tag is required"})
@@ -199,13 +213,18 @@ func (c *controller) providerOverrides(w http.ResponseWriter, r *http.Request) {
 			if previous, exists := document.Providers[tag]; exists {
 				override.Definition = deepMerge(previous.Definition, override.Definition)
 			}
+			effective, err := c.overrides.baseDefinition(tag)
+			if err != nil {
+				return err
+			}
+			effective = deepMerge(effective, override.Definition)
 			checker := c.overrides.check
 			if checker == nil {
 				checker = checkRemoteProvider
 			}
 			checkContext, cancel := context.WithTimeout(r.Context(), 15*time.Second)
 			defer cancel()
-			if err := checker(checkContext, override.Definition); err != nil {
+			if err := checker(checkContext, effective); err != nil {
 				return fmt.Errorf("provider check failed: %w", err)
 			}
 			document.Providers[tag] = override
@@ -283,6 +302,7 @@ func main() {
 	token := flag.String("token", os.Getenv("ZASHBOARD_CONTROLLER_TOKEN"), "controller bearer token")
 	overridePath := flag.String("provider-overrides", "", "provider override document path")
 	configBuilder := flag.String("config-builder", "", "fixed runtime config builder command")
+	baseConfig := flag.String("base-config", "", "base sing-box configuration used for redacted provider metadata")
 	flag.Parse()
 
 	if *token == "" {
@@ -302,12 +322,15 @@ func main() {
 	}
 	ctl := &controller{
 		supervisor: sup, token: *token, core: core, client: &http.Client{Timeout: 2 * time.Second},
-		overrides: &providerOverrideManager{path: *overridePath, builder: *configBuilder, check: checkRemoteProvider},
+		overrides: &providerOverrideManager{path: *overridePath, builder: *configBuilder, baseConfig: *baseConfig, check: checkRemoteProvider},
 	}
 	proxy := httputil.NewSingleHostReverseProxy(core)
 	static := http.FileServer(http.FS(ui))
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if allowBrowserControllerAPI(w, r) {
+			return
+		}
 		switch {
 		case r.URL.Path == "/controller/v1/status" && r.Method == http.MethodGet:
 			ctl.status(w, r)

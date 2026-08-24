@@ -14,7 +14,33 @@
           placeholder="airport-backup"
         />
       </label>
-      <label class="form-control gap-1">
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <label class="form-control gap-1">
+          <span class="text-sm">{{ $t('providerType') }}</span>
+          <select
+            v-model="form.type"
+            class="select select-bordered select-sm"
+          >
+            <option value="remote">Remote</option>
+            <option value="local">Local</option>
+          </select>
+        </label>
+        <label
+          v-if="form.type === 'local'"
+          class="form-control gap-1"
+        >
+          <span class="text-sm">{{ $t('providerPath') }}</span>
+          <input
+            v-model="form.path"
+            class="input input-bordered input-sm font-mono"
+            placeholder="/etc/sing-box/providers/local.yaml"
+          />
+        </label>
+      </div>
+      <label
+        v-if="form.type === 'remote'"
+        class="form-control gap-1"
+      >
         <span class="text-sm">{{ $t('providerUrl') }}</span>
         <input
           v-model="form.url"
@@ -24,6 +50,18 @@
           :placeholder="
             urlConfigured ? $t('providerSecretPreserved') : 'https://example.com/subscription'
           "
+        />
+      </label>
+      <label
+        v-if="form.type === 'remote'"
+        class="form-control gap-1"
+      >
+        <span class="text-sm">{{ $t('providerHeaders') }}</span>
+        <textarea
+          v-model="form.headers"
+          class="textarea textarea-bordered min-h-16 font-mono text-xs"
+          autocomplete="off"
+          :placeholder="headersPlaceholder"
         />
       </label>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -65,7 +103,7 @@
         </label>
         <div
           v-if="form.healthEnabled"
-          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+          class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3"
         >
           <input
             v-model="form.healthUrl"
@@ -76,6 +114,11 @@
             v-model="form.healthInterval"
             class="input input-bordered input-sm"
             placeholder="10m"
+          />
+          <input
+            v-model="form.healthTimeout"
+            class="input input-bordered input-sm"
+            placeholder="30s"
           />
         </div>
       </div>
@@ -140,33 +183,46 @@ const { t } = useI18n()
 const saving = ref(false)
 const hasOverride = ref(false)
 const urlConfigured = ref(false)
+const headersConfigured = ref(false)
 const smartGroups = computed(() =>
   proxyGroupList.value.filter((name) => proxyMap.value[name]?.smart),
 )
+const headersPlaceholder = computed(() =>
+  headersConfigured.value ? t('providerSecretPreserved') : '{"User-Agent":"sing-box"}',
+)
 const form = reactive({
   tag: '',
+  type: 'remote' as 'remote' | 'local',
   url: '',
+  path: '',
+  headers: '',
   format: 'clash',
   updateInterval: '24h',
   downloadDetour: 'DIRECT',
   healthEnabled: true,
   healthUrl: 'https://www.gstatic.com/generate_204',
   healthInterval: '10m',
+  healthTimeout: '30s',
   attachTo: [] as string[],
 })
 
 const reset = () => {
   form.tag = providerOverrideTarget.value
+  form.type = 'remote'
   form.url = ''
+  form.path = ''
+  form.headers = ''
   form.format = 'clash'
   form.updateInterval = '24h'
   form.downloadDetour = 'DIRECT'
   form.healthEnabled = true
   form.healthUrl = 'https://www.gstatic.com/generate_204'
   form.healthInterval = '10m'
+  form.healthTimeout = '30s'
   form.attachTo = smartGroups.value.slice()
   hasOverride.value = false
   urlConfigured.value = false
+  headersConfigured.value = false
 }
 
 watch(providerOverrideModalOpen, async (open) => {
@@ -176,14 +232,18 @@ watch(providerOverrideModalOpen, async (open) => {
     const { data } = await fetchProviderOverridesAPI()
     const override = data.providers[providerOverrideTarget.value]
     if (!override) return
-    hasOverride.value = true
+    hasOverride.value = Boolean(override.overridden)
     urlConfigured.value = Boolean(override.definition.url_configured)
+    headersConfigured.value = Boolean(override.definition.headers_configured)
+    form.type = override.definition.type || form.type
+    form.path = override.definition.path || form.path
     form.format = override.definition.format || form.format
     form.updateInterval = override.definition.update_interval || form.updateInterval
     form.downloadDetour = override.definition.download_detour || form.downloadDetour
     form.healthEnabled = override.definition.health_check?.enabled ?? form.healthEnabled
     form.healthUrl = override.definition.health_check?.url || form.healthUrl
     form.healthInterval = override.definition.health_check?.interval || form.healthInterval
+    form.healthTimeout = override.definition.health_check?.timeout || form.healthTimeout
     form.attachTo = override.attach_to?.slice() || form.attachTo
   } catch (error) {
     notifyRequestError(error)
@@ -194,7 +254,7 @@ const save = async () => {
   saving.value = true
   try {
     const definition: Record<string, unknown> = {
-      type: 'remote',
+      type: form.type,
       format: form.format,
       update_interval: form.updateInterval,
       download_detour: form.downloadDetour,
@@ -202,9 +262,18 @@ const save = async () => {
         enabled: form.healthEnabled,
         url: form.healthUrl,
         interval: form.healthInterval,
+        timeout: form.healthTimeout,
       },
     }
-    if (form.url) definition.url = form.url
+    if (form.type === 'remote' && form.url) definition.url = form.url
+    if (form.type === 'remote' && form.headers) {
+      const headers = JSON.parse(form.headers)
+      if (!headers || Array.isArray(headers) || typeof headers !== 'object') {
+        throw new Error(t('providerHeadersInvalid'))
+      }
+      definition.headers = headers
+    }
+    if (form.type === 'local' && form.path) definition.path = form.path
     await putProviderOverrideAPI(form.tag, { definition, attach_to: form.attachTo })
     providerOverrideModalOpen.value = false
     window.setTimeout(fetchProxies, 1000)

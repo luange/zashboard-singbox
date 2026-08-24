@@ -99,6 +99,14 @@
         v-model="model.controllerToken"
       />
     </div>
+    <div class="flex flex-col gap-1">
+      <label class="text-sm">{{ $t('controllerPort') }} ({{ $t('optional') }})</label>
+      <TextInput
+        class="w-full"
+        v-model="model.controllerPort"
+        placeholder="19091"
+      />
+    </div>
   </div>
 </template>
 

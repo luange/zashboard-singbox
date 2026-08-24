@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 )
 
@@ -15,6 +16,18 @@ func TestCoreAPIPathAllowList(t *testing.T) {
 		if isCoreAPIPath(path) {
 			t.Fatalf("unexpected core API path: %s", path)
 		}
+	}
+}
+
+func TestControllerCORSPreflight(t *testing.T) {
+	request := httptest.NewRequest(http.MethodOptions, "/controller/v1/provider-overrides/airport", nil)
+	recorder := httptest.NewRecorder()
+	if !allowBrowserControllerAPI(recorder, request) {
+		t.Fatal("OPTIONS request was not handled")
+	}
+	response := recorder.Result()
+	if response.StatusCode != http.StatusNoContent || response.Header.Get("Access-Control-Allow-Origin") != "*" {
+		t.Fatalf("unexpected CORS response: status=%d headers=%v", response.StatusCode, response.Header)
 	}
 }
 

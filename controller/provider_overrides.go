@@ -31,10 +31,17 @@ type providerOverrideDocument struct {
 }
 
 type providerOverrideManager struct {
-	path    string
-	builder string
-	check   func(context.Context, map[string]any) error
-	mu      sync.Mutex
+	path       string
+	builder    string
+	baseConfig string
+	check      func(context.Context, map[string]any) error
+	mu         sync.Mutex
+}
+
+type providerOverrideView struct {
+	Definition map[string]any `json:"definition"`
+	AttachTo   []string       `json:"attach_to,omitempty"`
+	Overridden bool           `json:"overridden"`
 }
 
 func emptyProviderOverrideDocument() providerOverrideDocument {
@@ -146,6 +153,86 @@ func (m *providerOverrideManager) mutate(mutation func(*providerOverrideDocument
 		}
 	}
 	return nil
+}
+
+func (m *providerOverrideManager) baseDefinition(tag string) (map[string]any, error) {
+	if m.baseConfig == "" {
+		return nil, nil
+	}
+	data, err := os.ReadFile(m.baseConfig)
+	if err != nil {
+		return nil, err
+	}
+	var config map[string]any
+	if err = json.Unmarshal(data, &config); err != nil {
+		return nil, fmt.Errorf("decode base config: %w", err)
+	}
+	providers, _ := config["providers"].([]any)
+	for _, raw := range providers {
+		provider, ok := raw.(map[string]any)
+		if !ok || provider["tag"] != tag {
+			continue
+		}
+		definition := deepMerge(nil, provider)
+		delete(definition, "tag")
+		return definition, nil
+	}
+	return nil, nil
+}
+
+func (m *providerOverrideManager) view(document providerOverrideDocument) (map[string]providerOverrideView, error) {
+	views := map[string]providerOverrideView{}
+	if m.baseConfig != "" {
+		data, err := os.ReadFile(m.baseConfig)
+		if err != nil {
+			return nil, err
+		}
+		var config map[string]any
+		if err = json.Unmarshal(data, &config); err != nil {
+			return nil, fmt.Errorf("decode base config: %w", err)
+		}
+		attachments := map[string][]string{}
+		outbounds, _ := config["outbounds"].([]any)
+		for _, rawOutbound := range outbounds {
+			outbound, ok := rawOutbound.(map[string]any)
+			if !ok {
+				continue
+			}
+			group, _ := outbound["tag"].(string)
+			providers, _ := outbound["providers"].([]any)
+			for _, rawTag := range providers {
+				if tag, ok := rawTag.(string); ok {
+					attachments[tag] = append(attachments[tag], group)
+				}
+			}
+		}
+		providers, _ := config["providers"].([]any)
+		for _, raw := range providers {
+			provider, ok := raw.(map[string]any)
+			if !ok {
+				continue
+			}
+			tag, tagOK := provider["tag"].(string)
+			if !tagOK {
+				continue
+			}
+			definition := deepMerge(nil, provider)
+			delete(definition, "tag")
+			views[tag] = providerOverrideView{Definition: redactProviderOverride(providerOverride{Definition: definition}).Definition, AttachTo: attachments[tag]}
+		}
+	}
+	for tag, override := range document.Providers {
+		definition := override.Definition
+		attachTo := override.AttachTo
+		if base, exists := views[tag]; exists {
+			definition = deepMerge(base.Definition, definition)
+			if attachTo == nil {
+				attachTo = base.AttachTo
+			}
+		}
+		views[tag] = providerOverrideView{Definition: redactProviderOverride(providerOverride{Definition: definition}).Definition, AttachTo: attachTo, Overridden: true}
+	}
+	return views, nil
 }
 
 func checkRemoteProvider(ctx context.Context, definition map[string]any) error {

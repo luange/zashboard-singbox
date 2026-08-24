@@ -273,6 +273,10 @@ const ru: LANG_MESSAGE = {
   addProviderOverride: 'Добавить Provider',
   editProviderOverride: 'Изменить переопределение Provider',
   providerName: 'Имя Provider',
+  providerType: 'Тип Provider',
+  providerPath: 'Путь к локальному файлу',
+  providerHeaders: 'Заголовки подписки JSON (пусто — сохранить)',
+  providerHeadersInvalid: 'Заголовки должны быть объектом JSON',
   providerUrl: 'URL подписки',
   providerSecretPreserved: 'Настроено; оставьте пустым, чтобы сохранить секрет',
   updateInterval: 'Интервал обновления',
@@ -360,6 +364,7 @@ const ru: LANG_MESSAGE = {
   stopCoreSuccess: 'Ядро остановлено',
   stopCoreConfirm: 'Прокси-сервис будет недоступен до следующего запуска ядра.',
   controllerToken: 'Токен контроллера',
+  controllerPort: 'Порт контроллера',
   restartCoreConfirm:
     'Перезапустить ядро сейчас? Работа прокси ненадолго прервётся, существующие соединения будут разорваны.',
   checkCoreUpgrade: 'Проверить доступность обновления ядра',

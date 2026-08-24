@@ -83,10 +83,15 @@ removed from displayed health-check URLs. Check failures return only a redacted
 reason. The original configuration remains unchanged, so the feature is
 reversible and survives subscription regeneration.
 
-The dashboard must be opened through the independent controller address to use
-editing and lifecycle controls. A dashboard served directly by the core keeps
-ordinary Clash-compatible display/update behavior but cannot manage the host
-service or its configuration files.
+The dashboard may be opened through either the core or the independent
+controller. When it is served by the core, management calls are sent to the
+separately configured controller port.
+
+When the core UI and controller use different ports, set `controllerPort` on
+the backend (default `19091`). The dashboard keeps runtime Provider operations
+on the Clash-compatible core API and sends definition overrides to the
+controller. The controller permits credential-free CORS discovery, while every
+mutating request still requires its bearer token; it never uses cookies.
 
 ## Provider lifecycle
 
