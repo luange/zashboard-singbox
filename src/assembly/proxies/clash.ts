@@ -247,6 +247,17 @@ const isLatencyTestable = (name: string) => {
   return !type || !untestableProxyTypes.has(type)
 }
 
+// Dashboard mode tests each node through the same Clash delay endpoint as the
+// group mode.  Do not impose a separate 2s ceiling here: that ceiling expires
+// during a normal TCP+TLS handshake on higher-latency routes and reports a
+// usable node as "failed or timed out".  Keep the existing 5s lower bound used
+// by group tests while still honoring a larger user-configured timeout.
+const getEffectiveSpeedtestTimeout = () => {
+  const configured = Number(speedtestTimeout.value)
+
+  return Number.isFinite(configured) ? Math.max(5000, configured) : 5000
+}
+
 // tipName 只用于提示文案(可能是 i18n 的「全部」),groupName 才是延迟落桶用的真实组名。
 const testLatencyOneByOneWithTip = async (
   tipName: string,
@@ -266,7 +277,7 @@ const testLatencyOneByOneWithTip = async (
           const { data } = await latencyTestForSingle(
             name,
             url,
-            Math.min(2000, speedtestTimeout.value),
+            getEffectiveSpeedtestTimeout(),
           )
 
           setHistory(name, data.delay, groupName)
@@ -326,7 +337,7 @@ export const proxyGroupLatencyTest = async (proxyGroupName: string) => {
     return testLatencyOneByOneWithTip(proxyGroupName, all, url, proxyGroupName)
   }
 
-  const timeout = Math.max(5000, speedtestTimeout.value)
+  const timeout = getEffectiveSpeedtestTimeout()
 
   if (IPv6test.value) {
     try {
