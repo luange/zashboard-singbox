@@ -241,7 +241,12 @@ const setHistory = (proxyName: string, delay: number, groupName?: string) => {
 const TIP_KEY = 'testLatencyOneByOneWithTip'
 const limiter = pLimit(5)
 const untestableProxyTypes = new Set([PROXY_TYPE.Reject, PROXY_TYPE.RejectDrop, PROXY_TYPE.Block])
+const SMART_SELECTOR_ALIAS = '♻️ 智能选择'
 const isLatencyTestable = (name: string) => {
+  // Smart/Adaptive groups expose a synthetic selector entry for compatibility
+  // with Clash dashboards. It is not an outbound and must never be probed.
+  if (name === SMART_SELECTOR_ALIAS) return false
+
   const type = proxyMap.value[name]?.type.toLowerCase() as PROXY_TYPE | undefined
 
   return !type || !untestableProxyTypes.has(type)
